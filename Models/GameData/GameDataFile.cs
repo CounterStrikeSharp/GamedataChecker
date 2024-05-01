@@ -48,7 +48,7 @@ namespace GDC
             }
 
 #if THROW
-            // throw new FileNotFoundException($"Unable to find binary '{binaryName}' for platform '{platform}'");
+            throw new FileNotFoundException($"Unable to find binary '{binaryName}' for platform '{platform}'");
 #else
             return null;
 #endif
@@ -78,7 +78,7 @@ namespace GDC
                     if (binary == null)
                     {
 #if THROW
-                        // throw new FileNotFoundException($"Binary file '{gameData.Value.Signatures.Library}' could not be found for platform '{platform}'");
+                        throw new FileNotFoundException($"Binary file '{gameData.Value.Signatures.Library}' could not be found for platform '{platform}'");
 #else
                         Log.Warning($"Unable to check '[lightskyblue1]{gameData.Key}[/]' (No '[steelblue1]{platform.ToString().UppercaseFirstLetter()}[/]' binary loaded for '[blue]{gameData.Value.Signatures.Library}[/]')");
                         continue;
