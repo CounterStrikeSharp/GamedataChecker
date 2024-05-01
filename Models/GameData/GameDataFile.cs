@@ -42,17 +42,16 @@ namespace GDC
 
         public GameBinary? GetBinaryForPlatform(string binaryName, OSPlatform platform)
         {
-            if (!this.Platforms.Contains(platform))
-            {
-                throw new NotSupportedException($"Platform '{platform}' is not supported");
-            }
-
             if (this.Binaries.TryGetValue(platform, out List<GameBinary>? binaries))
             {
                 return binaries.FirstOrDefault(b => b.Name == binaryName);
             }
 
-            throw new FileNotFoundException($"Unable to find binary '{binaryName}' for platform '{platform}'");
+#if THROW
+            // throw new FileNotFoundException($"Unable to find binary '{binaryName}' for platform '{platform}'");
+#else
+            return null;
+#endif
         }
 
         public async Task<IEnumerable<GameDataSignatureReport>> ScanAsync()
@@ -78,8 +77,13 @@ namespace GDC
 
                     if (binary == null)
                     {
-                        throw new FileNotFoundException($"Binary file '{gameData.Value.Signatures.Library}' could not be found for platform '{platform}'");
-                    }    
+#if THROW
+                        // throw new FileNotFoundException($"Binary file '{gameData.Value.Signatures.Library}' could not be found for platform '{platform}'");
+#else
+                        Log.Warning($"Unable to check '[lightskyblue1]{gameData.Key}[/]' (No '[steelblue1]{platform.ToString().UppercaseFirstLetter()}[/]' binary loaded for '[blue]{gameData.Value.Signatures.Library}[/]')");
+                        continue;
+#endif
+                    }
 
                     if (!binary.IsLoaded())
                     {
