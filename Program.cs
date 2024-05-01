@@ -24,7 +24,7 @@ class Program
 
         app.Configure(config =>
         {
-            config.SetApplicationName("Gamedata Checker");
+            config.SetApplicationName("GDC");
 
             config.SetExceptionHandler((Exception exception, ITypeResolver? resolver) =>
             {
