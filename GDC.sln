@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34526.213
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDC", "GDC.csproj", "{5519DA7C-90FB-433C-A647-2F8A3ECB9358}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GDC", "GDC.csproj", "{5519DA7C-90FB-433C-A647-2F8A3ECB9358}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UI", "UI\UI.csproj", "{DF8B9BA6-6EED-4D74-A39A-E179E2A61C83}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{5519DA7C-90FB-433C-A647-2F8A3ECB9358}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5519DA7C-90FB-433C-A647-2F8A3ECB9358}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5519DA7C-90FB-433C-A647-2F8A3ECB9358}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF8B9BA6-6EED-4D74-A39A-E179E2A61C83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF8B9BA6-6EED-4D74-A39A-E179E2A61C83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF8B9BA6-6EED-4D74-A39A-E179E2A61C83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF8B9BA6-6EED-4D74-A39A-E179E2A61C83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,75 @@
+﻿@using Radzen
+@using System.Text.Json
+
+@inject IJSRuntime JSRuntime
+
+<RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Class="rz-mt-4 rz-p-4 rz-border-radius-1" @attributes=@Attributes Style="border: var(--rz-grid-cell-border); margin-bottom: 3vh;">
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenIcon Icon="wysiwyg" />
+        <RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" Class="rz-m-0">
+            Console log
+         </RadzenText>
+        <RadzenButton Click=@OnClearClick Text="Clear console" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small" />
+    </RadzenStack>
+    <RadzenStack Orientation="Orientation.Vertical" Gap="0" ID="event-console" Class="rz-pt-1" Style="border-top: var(--rz-grid-cell-border); min-height: 2rem; max-height: 36rem; overflow: auto;">
+        @{
+            List<Message> messagesCopy = new List<Message>(messages);
+        }
+        
+        @foreach (var message in messagesCopy)
+        {
+            <RadzenAlert ShowIcon="true" Variant="Variant.Flat" AlertStyle="message.AlertStyle" Size="AlertSize.Small" Shade="Shade.Lighter" AllowClose="false" Style="font-size: 1.0rem">
+                <span Style="opacity: 0.6;">[@message.Date.ToString("HH:mm:ss")]</span> @message.Text
+            </RadzenAlert>
+        }
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    class Message
+    {
+        public required DateTime Date { get; set; }
+        public required string Text { get; set; }
+        public required AlertStyle AlertStyle { get; set; }
+    }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public required IDictionary<string, object> Attributes { get; set; }
+    IList<Message> messages = new List<Message>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('event-console').scrollTop = document.getElementById('event-console').scrollHeight");
+        }
+    }
+
+    void OnClearClick()
+    {
+        Clear();
+    }
+
+    public void Clear()
+    {
+        messages.Clear();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Log(string message, AlertStyle alertStyle = AlertStyle.Info)
+    {
+        messages.Add(new Message { Date = DateTime.Now, Text = message, AlertStyle = alertStyle });
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Info(string message) => this.Log(message, AlertStyle.Success);
+    public void Error(string message) => this.Log(message, AlertStyle.Danger);
+    public void Warning(string message) => this.Log(message, AlertStyle.Warning);
+    public void Debug(string message) => this.Log(message, AlertStyle.Info);
+    public void Exception(Exception ex) => this.Error($"[{ex.GetType().Name}] {ex.Message}");
+
+    public void Log(object value)
+    {
+        Log(JsonSerializer.Serialize(value));
+    }
+}

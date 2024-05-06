@@ -1,0 +1,268 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@inject NavigationManager NavigationManager
+@inject SessionHandler SessionHandler;
+@inject IWebHostEnvironment HostEnvironment
+@inject ILogger<Home> Logger
+
+@using System.Security.Cryptography
+
+<PageTitle>Gamedata Checker</PageTitle>
+
+<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+    <RadzenImage Path="./assets/img/cssharp.svg" Style="width: 8rem;" AlternateText="community" />
+    <RadzenText TextStyle="TextStyle.H3">
+        CounterStrikeSharp
+    </RadzenText>
+</RadzenStack>
+
+<RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Class="rz-mt-4 rz-p-4 rz-border-radius-1" Style="border: var(--rz-grid-cell-border)">
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center">
+        <RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" Class="rz-m-0">Upload Files</RadzenText>
+    </RadzenStack>
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Class="rz-mt-4 rz-p-4">
+        <RadzenStack Class="col-md-6 p-3">
+            <RadzenCard Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Gamedata files</RadzenText>
+                <RadzenUpload
+                    Change=@(args => this.OnFilesSelected(args, ref this.JsonFiles))
+                    Accept=".json"
+                    id="UploadGamedatas"
+                    ChooseText="Drag and drop here or click to choose files"
+                    Auto="false"
+                    Multiple="true"
+                    InputAttributes="@(new Dictionary<string, object>() {{ "aria-label", "select file" }})"
+                    class="w-100"
+                 />
+            </RadzenCard>
+
+            <RadzenStack Gap="0.5rem">
+                <RadzenButton Text="Upload" Click=@(async (args) => { await this.UploadFiles(this.JsonFiles); }) Icon="backup" ButtonStyle="ButtonStyle.Primary" />
+            </RadzenStack>
+        </RadzenStack>
+
+        <RadzenStack Class="col-md-6 p-3">
+            <RadzenCard Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Binary files</RadzenText>
+                <RadzenUpload
+                    Change=@(args => this.OnFilesSelected(args, ref this.BinaryFiles))
+                    Accept=".dll,.so"
+                    id="UploadBinaries"
+                    ChooseText="Drag and drop here or click to choose files"
+                    Auto="false"
+                    Multiple="true"
+                    InputAttributes="@(new Dictionary<string, object>() {{ "aria-label", "select file" }})"
+                    class="w-100"
+                 />
+            </RadzenCard>
+
+            <RadzenStack Gap="0.5rem">
+                <RadzenButton Text="Upload" Click=@(async (args) => { await this.UploadFiles(this.BinaryFiles); }) Icon="backup" ButtonStyle="ButtonStyle.Primary" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+
+    <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Class="rz-mt-4 rz-p-4" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center">
+        <RadzenStack>
+            <RadzenButton Text="Process Files" Click=@(async (args) => { await this.ProcessFiles(); }) Icon="checklist" class="d-block mt-4" />
+        </RadzenStack>
+    </RadzenStack>
+</RadzenStack>
+
+<EventConsole @ref=@this.Console />
+
+@code {
+    public required List<Radzen.FileInfo> JsonFiles;
+    public required List<Radzen.FileInfo> BinaryFiles;
+
+    public required EventConsole Console;
+
+    public required string SessionID;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.SessionID = this.SessionHandler.GenerateID();
+            this.Console.Log($"New session started: {this.SessionID}");
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void OnFilesSelected(UploadChangeEventArgs args, ref List<Radzen.FileInfo> list)
+    {
+        if (args.Files.Count() > 0)
+        {
+            list = new List<Radzen.FileInfo>(args.Files);
+            this.Console.Log($"Selected \"{string.Join(" ", args.Files.Select(f => f.Name))}\" files with total {args.Files.Sum(f => f.Size)} bytes.");
+        } else {
+            list.Clear();
+            this.Console.Log("Cleared files");
+        }
+    }
+
+    private async Task UploadFiles(IEnumerable<Radzen.FileInfo> files)
+    {
+        if (files == null || files.Count() == 0)
+        {
+            this.Console.Error("No files selected to upload");
+            return;
+        }
+
+        string sessionPath = Path.Combine(this.HostEnvironment.WebRootPath, "uploads", this.SessionID);
+
+        try
+        {
+            if (!Directory.Exists(sessionPath))
+            {
+                Directory.CreateDirectory(sessionPath);
+            }
+        } catch (Exception ex)
+        {
+            this.Console.Exception(ex);
+            return;
+        }
+
+        foreach (Radzen.FileInfo? file in files)
+        {
+            if (file == null)
+                continue;
+
+            string filePath = Path.Combine(sessionPath, file.Name);
+
+            try
+            {
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    long maxFileSize = 50 * 1024 * 1024 * 1; // ~52.4288mb
+
+                    using (Stream uploadStream = file.OpenReadStream(maxFileSize))
+                    {
+                        await uploadStream.CopyToAsync(fileStream);
+                    }
+                }
+
+                string fileHash = await this.GetFileHash(filePath);
+                this.Console.Log($"Uploaded {file.Name} ({file.Size} bytes) [{fileHash}]");
+            } catch (Exception ex)
+            {
+                this.Console.Exception(ex);
+            }
+        }
+    }
+
+    private async Task<string> GetFileHash(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                using (FileStream fileStream = File.OpenRead(filePath))
+                {
+                    using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+                    {
+                        byte[] hashBytes = await md5.ComputeHashAsync(fileStream);
+                        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                    }
+                }
+            } else
+            {
+                this.Console.Error("File not found.");
+            }
+        } catch (Exception ex)
+        {
+            this.Console.Exception(ex);
+        }
+
+        return "<unknown>";
+    }
+
+    private async Task ProcessFiles()
+    {
+        if (this.JsonFiles == null || this.JsonFiles.Count == 0)
+        {
+            this.Console.Error("You have to upload atleast one gamedata file.");
+            return;
+        }
+
+        if (this.BinaryFiles == null || this.BinaryFiles.Count == 0)
+        {
+            this.Console.Error("You have to upload atleast one binary file.");
+            return;
+        }
+
+        string jsonArgsLog = string.Join(" ", this.JsonFiles.Select(file => $"--gamedata {file.Name}"));
+        string binaryArgsLog = string.Join(" ", this.BinaryFiles.Select(file => $"--binary {file.Name}"));
+
+        this.Console.Log($"./GDC check {jsonArgsLog} {binaryArgsLog}");
+
+        string sessionPath = Path.Combine(this.HostEnvironment.WebRootPath, "uploads", this.SessionID);
+        string jsonArgs = string.Join(" ", this.JsonFiles.Select(file => $"--gamedata {Path.Combine(sessionPath, file.Name)}"));
+        string binaryArgs = string.Join(" ", this.BinaryFiles.Select(file => $"--binary {Path.Combine(sessionPath, file.Name)}"));
+
+        try
+        {
+            ProcessStartInfo processStartInfo = new ProcessStartInfo
+            {
+                FileName = Path.Combine(this.HostEnvironment.WebRootPath, "internal", "GDC.exe"),
+                Arguments = $"check {binaryArgs} {jsonArgs}",
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            };
+
+            using (Process? process = Process.Start(processStartInfo))
+            {
+                if (process == null)
+                {
+                    this.Console.Error("Failed to start GDC");
+                    return;
+                }
+
+                process.EnableRaisingEvents = true;
+                process.OutputDataReceived += (obj, args) =>
+                {
+                    if (string.IsNullOrEmpty(args.Data))
+                        return;
+
+                    string message = args.Data;
+                    AlertStyle style = AlertStyle.Danger;
+
+                    if (message.Contains("[WARNING]"))
+                        style = AlertStyle.Warning;
+                    else if (message.Contains("[ERROR]"))
+                        style = AlertStyle.Danger;
+                    else if (message.Contains("[GDC]"))
+                        style = AlertStyle.Success;
+                    else if (message.Contains("[DEBUG]"))
+                        style = AlertStyle.Info;
+
+                    this.Console.Log(args.Data, style);
+                };
+
+                process.BeginOutputReadLine();
+                await process.WaitForExitAsync();
+            }
+        } catch (Exception ex)
+        {
+            this.Console.Exception(ex);
+        } finally
+        {
+            this.Console.Log("Cleaning up...");
+
+            try
+            {
+                if (Directory.Exists(sessionPath))
+                {
+                    Directory.Delete(sessionPath, true);
+                    this.Console.Log("Done!");
+                }
+            } catch (Exception ex)
+            {
+                this.Console.Exception(ex);
+            }
+        }
+    }
+}
