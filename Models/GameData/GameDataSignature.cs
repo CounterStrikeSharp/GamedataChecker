@@ -22,10 +22,10 @@ namespace GDC
         public required string Library { get; set; }
 
         [JsonPropertyName("windows")]
-        public required string Windows { get; set; }
+        public string? Windows { get; set; }
 
         [JsonPropertyName("linux")]
-        public required string Linux { get; set; }
+        public string? Linux { get; set; }
 
         public bool IsValid(OSPlatform platform)
         {
@@ -58,7 +58,7 @@ namespace GDC
             return this.GetPattern(platform).Prettify(wildcard);
         }
 
-        private byte?[] ConvertPattern(string pattern)
+        private byte?[] ConvertPattern(string? pattern)
         {
             if (string.IsNullOrEmpty(pattern))
             {
