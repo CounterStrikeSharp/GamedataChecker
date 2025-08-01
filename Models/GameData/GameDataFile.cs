@@ -73,6 +73,9 @@ namespace GDC
                     if (gameData.Value.Signatures == null)
                         continue;
 
+                    if (!gameData.Value.Signatures!.IsValid(platform))
+                        continue;
+
                     GameBinary? binary = this.GetBinaryForPlatform(gameData.Value.Signatures.Library, platform);
 
                     if (binary == null)
@@ -106,9 +109,6 @@ namespace GDC
                 Platform = platform,
                 Found = false
             };
-
-            if (!gameData.Value.Signatures!.IsValid(platform))
-                return report;
 
             byte?[]? patternBytes = gameData.Value.Signatures!.GetPattern(platform);
 
