@@ -71,7 +71,6 @@ namespace GDC
                 // ok since the latest update we use IDA style patterns, but we might still support these aswell
                 pattern = pattern.Replace("\\\\x", " ")
                                  .Replace("\\x", " ")
-                                 .Replace("2A", "?")
                                  .Replace("??", "?");
 
                 string[] bytes = pattern.Split(' ', StringSplitOptions.RemoveEmptyEntries);
